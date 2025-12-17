@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Colaborativo - Intermark</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .content-item { transition: transform 0.2s; border: 1px solid #e5e7eb; height: 600px; display: flex; flex-direction: column; justify-content: space-between; border-radius: 0.5rem; padding: 1rem; background: white; }
+        
+        /* Colores solo para la sección de botones de estado */
+        .status-header { padding: 8px; border-radius: 6px; margin-bottom: 12px; transition: background-color 0.3s; background-color: #f9fafb; }
+        .header-aprobado { background-color: #008000 !important; }
+        .header-desaprobado { background-color: #F80000 !important; }
+        
+        /* Bordes laterales por producto (siempre visibles) */
+        .isotelha { border-left: 8px solid #fbbf24; }
+        .panel-pir { border-left: 8px solid #ef4444; }
+        .angel-mir { border-left: 8px solid #3b82f6; }
+        .feriado { border-left: 8px solid #38bdf8; }
+
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
+        .modal-content { margin: 5% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; background: white; color: black; position: relative; }
+        .media-thumbnail { width: 100%; height: 80px; margin-top: 10px; background-color: #e5e7eb; display: flex; align-items: center; justify-content: center; border-radius: 4px; overflow: hidden; }
+        .media-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Plan de Marketing: Calendario Colaborativo</h1>
+            <p class="text-gray-600">Intermark S.A. | Control de Estados</p>
+        </header>
+
+        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            </div>
+    </div>
+
+    <div id="linkModal" class="modal"><div class="modal-content">
+        <h2 class="font-bold mb-4">Añadir Archivo</h2>
+        <input type="hidden" id="modal_id">
+        <input type="text" id="modal_link_name" placeholder="Nombre del archivo" class="w-full p-2 border mb-2 rounded">
+        <input type="url" id="modal_link_url" placeholder="URL del link" class="w-full p-2 border mb-4 rounded">
+        <div class="flex gap-2">
+            <button onclick="saveLink()" class="flex-1 bg-green-600 text-white p-2 rounded font-bold">GUARDAR</button>
+            <button onclick="closeModal('linkModal')" class="flex-1 bg-gray-300 p-2 rounded">CANCELAR</button>
+        </div>
+    </div></div>
+
+    <div id="viewerModal" class="modal"><div class="modal-content max-w-4xl">
+        <span onclick="closeModal('viewerModal')" class="absolute top-2 right-4 text-2xl cursor-pointer">&times;</span>
+        <h2 class="font-bold mb-4 border-b pb-2">Visor de Medios</h2>
+        <div id="viewerContent" class="w-full min-h-[200px] flex flex-col gap-4"></div>
+    </div></div>
+
+    <div id="commentModal" class="modal"><div class="modal-content">
+        <h2 class="font-bold mb-2">Comentarios</h2>
+        <div id="commentList" class="h-48 overflow-y-auto mb-4 p-2 border rounded bg-gray-50 text-sm"></div>
+        <textarea id="new_comment" class="w-full p-2 border rounded h-20 text-black text-sm" placeholder="Escribe un comentario..."></textarea>
+        <button onclick="saveComment()" class="w-full bg-indigo-600 text-white p-2 mt-2 rounded font-bold">ENVIAR</button>
+        <button onclick="closeModal('commentModal')" class="w-full mt-2 text-gray-500 text-xs text-center">CERRAR</button>
+    </div></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTg0CvxMsfdcO8L_XkDCwKzPIWsZ7HjXs",
+            authDomain: "marketing-intermark.firebaseapp.com",
+            projectId: "marketing-intermark",
+            storageBucket: "marketing-intermark.firebasestorage.app",
+            messagingSenderId: "887823380924",
+            appId: "1:887823380924:web:723b8f209bc6db22debbb9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const STATUS_COL = "content_status";
+
+        const baseContent = [
+            { id: 1, producto: "Isotelha Colonial", tema: "Aislamiento y estética.", dia: "Lun", fecha: "15 Dic", linea: "isotelha" },
+            { id: 2, producto: "Panel Frigorífico PIR", tema: "Seguridad contra fuego.", dia: "Jue", fecha: "18 Dic", linea: "panel-pir" },
+            { id: 3, producto: "Angel Mir Puerta FAST", tema: "Velocidad térmica.", dia: "Lun", fecha: "22 Dic", linea: "angel-mir" }
+        ];
+
+        let cloudData = {};
+
+        window.updateField = async (id, field, value) => {
+            await setDoc(doc(db, STATUS_COL, String(id)), { [field]: value }, { merge: true });
+        };
+
+        window.openLinkModal = (id) => { document.getElementById('modal_id').value = id; document.getElementById('linkModal').style.display = 'block'; };
+        
+        window.saveLink = async () => {
+            const id = document.getElementById('modal_id').value;
+            const name = document.getElementById('modal_link_name').value;
+            const url = document.getElementById('modal_link_url').value;
+            const links = cloudData[id]?.links || [];
+            links.push({ name, url });
+            await updateField(id, 'links', links);
+            closeModal('linkModal');
+        };
+
+        window.openViewer = (id) => {
+            const links = cloudData[id]?.links || [];
+            const container = document.getElementById('viewerContent');
+            container.innerHTML = links.length ? links.map(l => `<div class="p-3 border rounded flex justify-between bg-white"><b>${l.name}</b> <a href="${l.url}" target="_blank" class="text-blue-600 underline">Abrir</a></div>`).join('') : "Sin archivos.";
+            document.getElementById('viewerModal').style.display = 'block';
+        };
+
+        window.openCommentModal = (id) => {
+            document.getElementById('modal_id').value = id;
+            const list = document.getElementById('commentList');
+            list.innerHTML = (cloudData[id]?.comments || []).map(c => `<div class="p-2 border-b">💬 ${c}</div>`).join('');
+            document.getElementById('commentModal').style.display = 'block';
+        };
+
+        window.saveComment = async () => {
+            const id = document.getElementById('modal_id').value;
+            const text = document.getElementById('new_comment').value;
+            const current = cloudData[id]?.comments || [];
+            current.push(text);
+            await updateField(id, 'comments', current);
+            document.getElementById('new_comment').value = '';
+            openCommentModal(id);
+        };
+
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+
+        onSnapshot(collection(db, STATUS_COL), (snapshot) => {
+            snapshot.forEach(doc => { cloudData[doc.id] = doc.data(); });
+            render();
+        });
+
+        function render() {
+            const container = document.getElementById('grid');
+            container.innerHTML = '';
+
+            baseContent.forEach(item => {
+                const data = cloudData[item.id] || {};
+                const links = data.links || [];
+                const statusClass = data.status === 'aprobado' ? 'header-aprobado' : (data.status === 'desaprobado' ? 'header-desaprobado' : '');
+                const firstImg = links.find(l => l.url.match(/\.(jpeg|jpg|gif|png|webp)$/i));
+
+                const card = document.createElement('div');
+                card.className = `content-item ${item.linea}`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="status-header ${statusClass}">
+                            <div class="flex gap-2">
+                                <button onclick="updateField(${item.id}, 'status', 'aprobado')" class="flex-1 bg-white text-black border border-gray-300 text-[10px] py-1 rounded font-bold hover:bg-green-50">APROBAR</button>
+                                <button onclick="updateField(${item.id}, 'status', 'desaprobado')" class="flex-1 bg-white text-black border border-gray-300 text-[10px] py-1 rounded font-bold hover:bg-red-50">RECHAZAR</button>
+                            </div>
+                            ${data.status ? `<p class="text-[9px] text-white text-center mt-1 font-bold">ESTADO: ${data.status.toUpperCase()}</p>` : ''}
+                        </div>
+
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">${item.dia}, ${item.fecha} (#${item.id})</p>
+                        <h2 class="text-md font-bold leading-tight uppercase text-black">${item.producto}</h2>
+                        <p class="text-xs mt-1 text-gray-600">${item.tema}</p>
+                        
+                        <div class="media-thumbnail">
+                            ${firstImg ? `<img src="${firstImg.url}">` : '<span class="text-[10px] text-gray-400">SIN VISTA PREVIA</span>'}
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <textarea onchange="updateField(${item.id}, 'copy', this.value)" class="w-full text-[10px] p-2 border rounded h-12 text-black" placeholder="Escribir Copy...">${data.copy || ''}</textarea>
+                    </div>
+
+                    <div class="flex gap-1 mt-2">
+                        <button onclick="openLinkModal(${item.id})" class="flex-1 bg-blue-500 text-white text-[9px] py-2 rounded font-bold shadow-sm">+ ENLACE</button>
+                        <button onclick="openViewer(${item.id})" class="flex-1 bg-gray-500 text-white text-[9px] py-2 rounded font-bold shadow-sm">VISOR (${links.length})</button>
+                    </div>
+
+                    <div class="mt-2 pt-2 border-t">
+                        <label class="text-[9px] text-gray-400 font-bold uppercase">Programar para:</label>
+                        <input type="date" value="${data.fechaApp || ''}" onchange="updateField(${item.id}, 'fechaApp', this.value)" class="w-full text-[10px] p-1 border rounded text-black mt-1">
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="flex gap-1">
+                            <button onclick="updateField(${item.id}, 'pauta', 'pautar')" class="flex-1 py-1 rounded text-[9px] font-bold ${data.pauta === 'pautar' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600'}">PAUTAR</button>
+                            <button onclick="updateField(${item.id}, 'pauta', 'no-pautar')" class="flex-1 py-1 rounded text-[9px] font-bold ${data.pauta === 'no-pautar' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-600'}">NO PAUTAR</button>
+                        </div>
+                    </div>
+
+                    <button onclick="openCommentModal(${item.id})" class="w-full bg-indigo-500 text-white text-[10px] py-1.5 mt-2 rounded font-bold uppercase shadow-sm">Comentarios (${data.comments?.length || 0})</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
