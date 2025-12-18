@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-s=1.0">
-    <title>Calendario Marketing - Intermark</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Colaborativo - Intermark</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .content-item { transition: transform 0.2s; border: 1px solid #e5e7eb; min-height: 600px; display: flex; flex-direction: column; justify-content: space-between; border-radius: 0.5rem; padding: 1rem; background: white; }
-        .status-header { padding: 8px; border-radius: 6px; margin-bottom: 12px; transition: background-color 0.3s; background-color: #f9fafb; }
+        .content-item { transition: transform 0.2s; border: 1px solid #e5e7eb; min-height: 620px; display: flex; flex-direction: column; justify-content: space-between; border-radius: 0.5rem; padding: 1rem; background: white; position: relative; }
+        .status-header { padding: 8px; border-radius: 6px; margin-bottom: 12px; background-color: #f9fafb; }
         .header-aprobado { background-color: #008000 !important; }
         .header-desaprobado { background-color: #F80000 !important; }
         
@@ -19,45 +19,42 @@
         .feriado { border-left: 8px solid #38bdf8; }
 
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); overflow-y: auto; }
-        .modal-content { margin: 5% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; background: white; color: black; position: relative; }
+        .modal-content { margin: 5% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; background: white; color: black; position: relative; }
         .media-thumbnail { width: 100%; height: 80px; margin-top: 10px; background-color: #e5e7eb; display: flex; align-items: center; justify-content: center; border-radius: 4px; overflow: hidden; }
         .media-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* Botón flotante */
         .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #4f46e5; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 90; }
+        .btn-delete { position: absolute; top: 10px; right: 10px; color: #ef4444; font-weight: bold; cursor: pointer; background: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.2); z-index: 10; }
     </style>
 </head>
 <body class="p-4 md:p-8 mb-20">
 
     <div class="max-w-7xl mx-auto">
-        <header class="mb-6 flex justify-between items-end">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Plan de Marketing: Diciembre - Enero</h1>
-                <p class="text-gray-600">Intermark S.A. | Diciembre 2025 / Enero 2026</p>
-            </div>
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Plan de Marketing: Calendario Colaborativo</h1>
+            <p class="text-gray-600">Intermark S.A. | Control de Publicaciones</p>
         </header>
-
-        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-            </div>
+        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6"></div>
     </div>
 
     <div class="fab" onclick="openAddModal()">+</div>
 
-    <div id="addModal" class="modal"><div class="modal-content">
-        <h2 class="font-bold mb-4 text-xl">Nueva Publicación</h2>
+    <div id="panelModal" class="modal"><div class="modal-content">
+        <h2 id="modalTitle" class="font-bold mb-4 text-xl">Nueva Publicación</h2>
+        <input type="hidden" id="edit_id">
         <div class="flex flex-col gap-3">
-            <input type="text" id="new_prod" placeholder="Producto (ej: Isotelha)" class="p-2 border rounded">
-            <input type="text" id="new_tema" placeholder="Tema/Objetivo" class="p-2 border rounded">
-            <input type="text" id="new_fecha_label" placeholder="Día y Fecha (ej: Lun, 15 Dic)" class="p-2 border rounded">
-            <select id="new_linea" class="p-2 border rounded">
+            <input type="text" id="p_prod" placeholder="Producto (ej: Isotelha)" class="p-2 border rounded">
+            <input type="text" id="p_tema" placeholder="Tema/Objetivo" class="p-2 border rounded">
+            <input type="text" id="p_fecha" placeholder="Día y Fecha (ej: Lun, 15 Dic)" class="p-2 border rounded">
+            <select id="p_linea" class="p-2 border rounded">
                 <option value="isotelha">Isotelha (Amarillo)</option>
                 <option value="panel-pir">Panel PIR (Rojo)</option>
                 <option value="angel-mir">Angel Mir (Azul)</option>
                 <option value="feriado">Feriado (Celeste)</option>
             </select>
             <div class="flex gap-2 mt-4">
-                <button onclick="saveNewPanel()" class="flex-1 bg-indigo-600 text-white p-3 rounded font-bold">CREAR PANEL</button>
-                <button onclick="closeModal('addModal')" class="flex-1 bg-gray-200 p-3 rounded">CANCELAR</button>
+                <button onclick="savePanelAction()" class="flex-1 bg-indigo-600 text-white p-3 rounded font-bold uppercase text-sm">Guardar Panel</button>
+                <button onclick="closeModal('panelModal')" class="flex-1 bg-gray-200 p-3 rounded text-sm">CANCELAR</button>
             </div>
         </div>
     </div></div>
@@ -65,27 +62,27 @@
     <div id="linkModal" class="modal"><div class="modal-content">
         <h2 class="font-bold mb-4 text-lg">Añadir Enlace</h2>
         <input type="hidden" id="modal_id">
-        <input type="text" id="modal_link_name" placeholder="Nombre (ej: Video V1)" class="w-full p-2 border mb-2 rounded">
-        <input type="url" id="modal_link_url" placeholder="URL del link" class="w-full p-2 border mb-4 rounded">
+        <input type="text" id="link_n" placeholder="Nombre" class="w-full p-2 border mb-2 rounded">
+        <input type="url" id="link_u" placeholder="URL" class="w-full p-2 border mb-4 rounded text-black">
         <button onclick="saveLink()" class="w-full bg-green-600 text-white p-3 rounded font-bold">GUARDAR</button>
     </div></div>
 
-    <div id="viewerModal" class="modal"><div class="modal-content max-w-4xl">
+    <div id="viewerModal" class="modal"><div class="modal-content">
         <span onclick="closeModal('viewerModal')" class="absolute top-2 right-4 text-2xl cursor-pointer">&times;</span>
-        <h2 class="font-bold mb-4 border-b pb-2">Visor de Medios</h2>
-        <div id="viewerContent" class="w-full min-h-[150px] flex flex-col gap-4"></div>
+        <h2 class="font-bold mb-4 border-b">Visor de Medios</h2>
+        <div id="viewerContent" class="w-full flex flex-col gap-2"></div>
     </div></div>
 
     <div id="commentModal" class="modal"><div class="modal-content">
         <h2 class="font-bold mb-2">Comentarios</h2>
-        <div id="commentList" class="h-48 overflow-y-auto mb-4 p-2 border rounded bg-gray-50 text-sm"></div>
-        <textarea id="new_comment" class="w-full p-2 border rounded h-20 text-sm" placeholder="Escribe un comentario..."></textarea>
+        <div id="commentList" class="h-40 overflow-y-auto mb-4 p-2 border rounded bg-gray-50 text-xs"></div>
+        <textarea id="new_comment" class="w-full p-2 border rounded h-16 text-sm" placeholder="Escribe..."></textarea>
         <button onclick="saveComment()" class="w-full bg-indigo-600 text-white p-2 mt-2 rounded font-bold">ENVIAR</button>
     </div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDTg0CvxMsfdcO8L_XkDCwKzPIWsZ7HjXs",
@@ -99,36 +96,46 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const STATUS_COL = "content_status";
-
         let cloudData = {};
 
-        // ABRIR MODAL NUEVO PANEL
-        window.openAddModal = () => document.getElementById('addModal').style.display = 'block';
+        // ACCIONES DE PANEL
+        window.openAddModal = () => {
+            document.getElementById('edit_id').value = '';
+            document.getElementById('modalTitle').innerText = 'Nueva Publicación';
+            document.getElementById('p_prod').value = '';
+            document.getElementById('p_tema').value = '';
+            document.getElementById('panelModal').style.display = 'block';
+        };
 
-        // GUARDAR NUEVO PANEL EN FIREBASE
-        window.saveNewPanel = async () => {
-            const prod = document.getElementById('new_prod').value;
-            const tema = document.getElementById('new_tema').value;
-            const fechaLabel = document.getElementById('new_fecha_label').value;
-            const linea = document.getElementById('new_linea').value;
+        window.openEditModal = (id) => {
+            const item = cloudData[id];
+            document.getElementById('edit_id').value = id;
+            document.getElementById('modalTitle').innerText = 'Editar Publicación';
+            document.getElementById('p_prod').value = item.producto || '';
+            document.getElementById('p_tema').value = item.tema || '';
+            document.getElementById('p_fecha').value = `${item.dia}, ${item.fecha}`;
+            document.getElementById('p_linea').value = item.linea || 'isotelha';
+            document.getElementById('panelModal').style.display = 'block';
+        };
 
-            if(!prod || !tema) return alert("Por favor completa Producto y Tema");
+        window.savePanelAction = async () => {
+            const id = document.getElementById('edit_id').value || Date.now().toString();
+            const fechaVal = document.getElementById('p_fecha').value;
+            await setDoc(doc(db, STATUS_COL, id), {
+                producto: document.getElementById('p_prod').value,
+                tema: document.getElementById('p_tema').value,
+                dia: fechaVal.split(',')[0] || '',
+                fecha: fechaVal.split(',')[1]?.trim() || '',
+                linea: document.getElementById('p_linea').value,
+                createdAt: cloudData[id]?.createdAt || new Date()
+            }, { merge: true });
+            closeModal('panelModal');
+        };
 
-            const newId = Date.now().toString(); // Usamos timestamp como ID
-            await setDoc(doc(db, STATUS_COL, newId), {
-                producto: prod,
-                tema: tema,
-                dia: fechaLabel.split(',')[0] || '',
-                fecha: fechaLabel.split(',')[1] || '',
-                linea: linea,
-                status: 'pendiente',
-                createdAt: new Date()
-            });
-
-            closeModal('addModal');
-            // Limpiar campos
-            document.getElementById('new_prod').value = '';
-            document.getElementById('new_tema').value = '';
+        window.deletePanel = async (id) => {
+            if(confirm("¿Estás seguro de eliminar este panel definitivamente?")) {
+                await deleteDoc(doc(db, STATUS_COL, id));
+            }
         };
 
         window.updateField = async (id, field, value) => {
@@ -136,11 +143,10 @@
         };
 
         window.openLinkModal = (id) => { document.getElementById('modal_id').value = id; document.getElementById('linkModal').style.display = 'block'; };
-        
         window.saveLink = async () => {
             const id = document.getElementById('modal_id').value;
             const links = cloudData[id]?.links || [];
-            links.push({ name: document.getElementById('modal_link_name').value, url: document.getElementById('modal_link_url').value });
+            links.push({ name: document.getElementById('link_n').value, url: document.getElementById('link_u').value });
             await updateField(id, 'links', links);
             closeModal('linkModal');
         };
@@ -148,7 +154,7 @@
         window.openViewer = (id) => {
             const container = document.getElementById('viewerContent');
             const links = cloudData[id]?.links || [];
-            container.innerHTML = links.map(l => `<div class="p-3 border rounded flex justify-between"><b>${l.name}</b> <a href="${l.url}" target="_blank" class="text-blue-600 underline">Ver</a></div>`).join('') || "No hay archivos.";
+            container.innerHTML = links.map(l => `<div class="p-2 border rounded flex justify-between text-sm bg-gray-50"><b>${l.name}</b> <a href="${l.url}" target="_blank" class="text-blue-600 underline">Abrir</a></div>`).join('') || "Sin archivos.";
             document.getElementById('viewerModal').style.display = 'block';
         };
 
@@ -169,7 +175,6 @@
 
         window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
-        // Escuchar Firebase en tiempo real
         onSnapshot(collection(db, STATUS_COL), (snapshot) => {
             cloudData = {};
             snapshot.forEach(doc => { cloudData[doc.id] = { id: doc.id, ...doc.data() }; });
@@ -179,8 +184,6 @@
         function render() {
             const container = document.getElementById('grid');
             container.innerHTML = '';
-            
-            // Convertimos el objeto en array y lo ordenamos por fecha de creación
             const items = Object.values(cloudData).sort((a,b) => (a.createdAt || 0) - (b.createdAt || 0));
 
             items.forEach(item => {
@@ -190,45 +193,36 @@
 
                 const card = document.createElement('div');
                 card.className = `content-item ${item.linea || 'isotelha'}`;
-
                 card.innerHTML = `
+                    <div onclick="deletePanel('${item.id}')" class="btn-delete" title="Eliminar Panel">×</div>
                     <div>
                         <div class="status-header ${statusClass}">
                             <div class="flex gap-2">
-                                <button onclick="updateField('${item.id}', 'status', 'aprobado')" class="flex-1 bg-white text-[10px] py-1 rounded font-bold border">APROBAR</button>
-                                <button onclick="updateField('${item.id}', 'status', 'desaprobado')" class="flex-1 bg-white text-[10px] py-1 rounded font-bold border">RECHAZAR</button>
+                                <button onclick="updateField('${item.id}', 'status', 'aprobado')" class="flex-1 bg-white text-[9px] py-1 rounded font-bold border">APROBAR</button>
+                                <button onclick="updateField('${item.id}', 'status', 'desaprobado')" class="flex-1 bg-white text-[9px] py-1 rounded font-bold border">RECHAZAR</button>
                             </div>
-                            ${item.status !== 'pendiente' ? `<p class="text-[9px] text-white text-center mt-1 font-bold">ESTADO: ${item.status.toUpperCase()}</p>` : ''}
                         </div>
-
-                        <p class="text-[10px] font-bold text-gray-400 uppercase">${item.dia}, ${item.fecha}</p>
-                        <h2 class="text-md font-bold leading-tight uppercase text-black">${item.producto}</h2>
-                        <p class="text-xs mt-1 text-gray-600">${item.tema}</p>
-                        
+                        <p class="text-[9px] font-bold text-gray-400 uppercase">${item.dia}, ${item.fecha}</p>
+                        <h2 class="text-md font-bold uppercase text-black leading-tight">${item.producto}</h2>
+                        <p class="text-xs text-gray-600">${item.tema}</p>
                         <div class="media-thumbnail">
-                            ${firstImg ? `<img src="${firstImg.url}">` : '<span class="text-[10px] text-gray-400">MULTIMEDIA</span>'}
+                            ${firstImg ? `<img src="${firstImg.url}">` : '<span class="text-[9px] text-gray-400">MULTIMEDIA</span>'}
                         </div>
                     </div>
-
-                    <div class="mt-2">
-                        <textarea onchange="updateField('${item.id}', 'copy', this.value)" class="w-full text-[10px] p-2 border rounded h-12 text-black" placeholder="Escribir Copy...">${item.copy || ''}</textarea>
-                    </div>
-
+                    <textarea onchange="updateField('${item.id}', 'copy', this.value)" class="w-full text-[10px] p-2 border rounded h-12 mt-2 text-black" placeholder="Copy...">${item.copy || ''}</textarea>
                     <div class="flex gap-1 mt-2">
-                        <button onclick="openLinkModal('${item.id}')" class="flex-1 bg-blue-500 text-white text-[9px] py-2 rounded font-bold">+ ENLACE</button>
-                        <button onclick="openViewer('${item.id}')" class="flex-1 bg-gray-500 text-white text-[9px] py-2 rounded font-bold">VISOR (${links.length})</button>
+                        <button onclick="openLinkModal('${item.id}')" class="flex-1 bg-blue-500 text-white text-[9px] py-1.5 rounded font-bold">+ ENLACE</button>
+                        <button onclick="openViewer('${item.id}')" class="flex-1 bg-gray-500 text-white text-[9px] py-1.5 rounded font-bold">VISOR (${links.length})</button>
                     </div>
-
                     <div class="mt-2 pt-2 border-t">
                         <input type="date" value="${item.fechaApp || ''}" onchange="updateField('${item.id}', 'fechaApp', this.value)" class="w-full text-[10px] p-1 border rounded text-black">
                     </div>
-
                     <div class="mt-2 flex gap-1">
-                        <button onclick="updateField('${item.id}', 'pauta', 'pautar')" class="flex-1 py-1 rounded text-[9px] font-bold ${item.pauta === 'pautar' ? 'bg-purple-600 text-white' : 'bg-gray-100'}">PAUTAR</button>
-                        <button onclick="updateField('${item.id}', 'pauta', 'no-pautar')" class="flex-1 py-1 rounded text-[9px] font-bold ${item.pauta === 'no-pautar' ? 'bg-pink-600 text-white' : 'bg-gray-100'}">NO PAUTAR</button>
+                        <button onclick="updateField('${item.id}', 'pauta', 'pautar')" class="flex-1 py-1 rounded text-[8px] font-bold ${item.pauta === 'pautar' ? 'bg-purple-600 text-white' : 'bg-gray-100'}">PAUTAR</button>
+                        <button onclick="updateField('${item.id}', 'pauta', 'no-pautar')" class="flex-1 py-1 rounded text-[8px] font-bold ${item.pauta === 'no-pautar' ? 'bg-pink-600 text-white' : 'bg-gray-100'}">NO PAUTAR</button>
                     </div>
-
-                    <button onclick="openCommentModal('${item.id}')" class="w-full bg-indigo-500 text-white text-[10px] py-1.5 mt-2 rounded font-bold uppercase">Comentarios (${item.comments?.length || 0})</button>
+                    <button onclick="openCommentModal('${item.id}')" class="w-full bg-indigo-500 text-white text-[9px] py-1.5 mt-2 rounded font-bold uppercase">Comentarios (${item.comments?.length || 0})</button>
+                    <button onclick="openEditModal('${item.id}')" class="w-full border border-blue-400 text-blue-500 text-[9px] py-1 mt-1 rounded font-bold uppercase tracking-wider">Editar Base</button>
                 `;
                 container.appendChild(card);
             });
@@ -236,4 +230,3 @@
     </script>
 </body>
 </html>
-
